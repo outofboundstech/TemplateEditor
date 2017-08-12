@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Elm Template Editor</title>
+
+  <!-- Pull in all other javascript resources -->
+  <script src="bundle.js"></script>
+</head>
+<body>
+
+  <main id="root"></main>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var node = document.getElementById('root');
+      var app = Elm.Main.embed(node,
+      { template :"Dear <=His name>, How do you do? I'm doing <=Your state>. Yours kindly, <=Your name>"
+      });
+    });
+  </script>
+</body>
+</html>
