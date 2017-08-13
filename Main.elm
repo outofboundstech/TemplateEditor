@@ -33,7 +33,7 @@ type Model =
 
 
 type Msg
-  = UpdateField Int String
+  = UpdateField Field String
 
 
 {-| init
@@ -59,21 +59,18 @@ view ( Model { template, fields } ) =
   Html.section [ Attr.id "template-editor" ]
     [ Html.div [ Attr.id "edit" ]
       [ Html.form [ ]
-        <| Tuple.second
-        <| List.foldr (\field (i, tail) ->
-              ( i+1, fieldView (UpdateField i) field :: tail )
-            ) (0, []) fields
+        ( List.map (\field -> fieldView field) fields )
       ]
     , Html.div [ Attr.id "preview" ] [ preview template fields ]
     ]
 
 
-fieldView : (String -> Msg) -> Field -> Html Msg
-fieldView msg (Field field) =
+fieldView : Field -> Html Msg
+fieldView (Field field) =
   Html.div [ ]
     [ Html.label [ ] [ Html.text field.q ]
     , Html.input
-      [ Events.onInput msg
+      [ Events.onInput (UpdateField (Field field))
       ] [ ]
     ]
 
@@ -83,15 +80,14 @@ fieldView msg (Field field) =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg ( Model model ) =
   case msg of
-    UpdateField index val ->
+    UpdateField field val ->
       let
-        -- I could use map and object comparison, rather than maintain a counter
-        (_ ,_ , _, fields) = List.foldr (\(Field field) (i, n, a, tail) ->
-            if i == n then
-              (i+1, n, a, Field { field | a = a } :: tail)
+        fields = List.map (\(Field f) ->
+            if (Field f) == field then
+              Field { f | a = val }
             else
-              (i+1, n, a, Field field :: tail)
-          ) (0, index, val, []) model.fields
+              Field f
+          ) model.fields
       in
         ( Model { model | fields = fields } ) ! [ Cmd.none ]
 
