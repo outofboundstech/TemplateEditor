@@ -5,6 +5,8 @@
 
   <title>Elm Template Editor</title>
 
+  <link rel="stylesheet" href="picnic.min.css">
+
   <!-- Pull in all other javascript resources -->
   <script src="bundle.js"></script>
 </head>
@@ -14,9 +16,25 @@
 
   <script>
     document.addEventListener('DOMContentLoaded', function() {
+      var template =
+`[=Woonplaats](::Plaats), [=Datum](date::Datum)
+
+Geachte heer/mevrouw,
+
+In het kader van [=Waarom wilt u deze informatie ontvangen?](::Reden van het WOB-verzoek) verzoek ik u mij de volgende informatie/documenten te verstrekken:
+
+[=Omschrijf de informatie/documenten die je wilt ontvangen](textarea::Omschrijving van de informatie/documenten)
+
+Het bovenstaande is een verzoek zoals bedoeld in artikel 6 eerste lid van de Wet openbaarheid van bestuur (Wob). Met verwijzing naar de termijn die is genoemd in artikel 6, eerste lid van de Wob verzoek ik u mij de gevraagde informatie **voor [=Wettelijke termijn](date::De wettelijke termijn is maximaal 4 weken)** toe te sturen. Indien u kosten in rekening brengt voor het maken van kopieën e.d. verzoek ik u mij hiervan vooraf op de hoogte te brengen. [=Hoe wilt u op de hoogte worden gehouden?](textarea::Uw contactgegevens).
+
+Hoogachtend,
+
+[=Wat is uw naam?](::Uw naam)
+`
+
       var node = document.getElementById('root');
       var app = Elm.Main.embed(node,
-      { template :"Dear <=His name>, How do you do? I'm doing <=Your state>. Yours kindly, <=Your name>"
+      { template : template
       });
     });
   </script>

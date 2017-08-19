@@ -1,12 +1,13 @@
 module Main exposing (main)
 
 
-import Regex as Re
-
 import Html exposing (Html)
 import Html.Attributes as Attr
 import Html.Events as Events
 
+import Markdown
+
+import Regex as Re
 
 type alias Flags =
   { template : String
@@ -19,9 +20,11 @@ type alias Template = String
 
 type Field =
   Field
-    { t : String
-    , q : String
-    , a : String
+    { token : String
+    , question : String
+    , answer : String
+    , type_ : String
+    , placeholder : String
     }
 
 
@@ -56,23 +59,49 @@ init flags =
 -}
 view : Model -> Html Msg
 view ( Model { template, fields } ) =
-  Html.section [ Attr.id "template-editor" ]
+  Html.section [ Attr.id "template-editor", Attr.class "flex two" ]
     [ Html.div [ Attr.id "edit" ]
       [ Html.form [ ]
         ( List.map (\field -> fieldView field) fields )
       ]
-    , Html.div [ Attr.id "preview" ] [ preview template fields ]
+    , Html.div [ Attr.id "preview" ]
+      [ preview template fields ]
     ]
 
 
 fieldView : Field -> Html Msg
 fieldView (Field field) =
-  Html.div [ ]
-    [ Html.label [ ] [ Html.text field.q ]
-    , Html.input
-      [ Events.onInput (UpdateField (Field field))
-      ] [ ]
+  Html.label [ ]
+    [ Html.text field.question
+    , if "textarea" == field.type_ then
+        Html.textarea
+        [ Events.onInput (UpdateField (Field field))
+        , Attr.value field.answer
+        , Attr.placeholder field.placeholder
+        ] [ ]
+      else
+        Html.input
+        [ Events.onInput (UpdateField (Field field))
+        , Attr.type_ field.type_
+        , Attr.value field.answer
+        , Attr.placeholder field.placeholder
+        ] [ ]
     ]
+
+
+preview : Template -> List Field -> Html Msg
+preview template fields =
+  let
+    withDefault = (\s def -> if String.isEmpty s then def else s)
+    final = List.foldl (\(Field field) result ->
+        -- Use Regex.replace if String.split proves too unflexible; I may need
+        --   mode control over field.t in order to pull that of.
+        -- Re.replace (Re.AtMost 1) field.re (\_ -> field.a) result
+        String.split field.token result
+          |> String.join (withDefault field.answer "&hellip;")
+      ) template fields
+  in
+    Markdown.toHtml [ ] final
 
 
 {-| update
@@ -84,7 +113,7 @@ update msg ( Model model ) =
       let
         fields = List.map (\(Field f) ->
             if (Field f) == field then
-              Field { f | a = val }
+              Field { f | answer = val }
             else
               Field f
           ) model.fields
@@ -111,32 +140,41 @@ parseTemplate str =
   let
     fields = List.map (\match ->
       let
-        t = match.match
-        q = match.submatches
-          |> List.head
-          |> Maybe.withDefault Nothing
-          |> Maybe.withDefault "Question not set..."
+        -- utility function for extracting submatches
+        submatch = (\i default ->
+            match.submatches
+            |> List.drop i
+            |> List.head
+            |> Maybe.withDefault Nothing
+            |> Maybe.withDefault default
+          )
+        attrs = (\list i default ->
+            list
+            |> List.drop i
+            |> List.head
+            |> Maybe.withDefault ""
+            |> (\val -> if (String.isEmpty val) then default else val)
+          ) (String.split ":" (submatch 1 ""))
+        -- value assignment
+        token = match.match
+        question = submatch 0 ""
+        type_ = attrs 0 "text"
+        value = attrs 1 ""
+        placeholder = attrs 2 ""
+        -- type_ = attrs |> List.drop 0 |> List.head |> Maybe.withDefault "text"
+        -- placeholder = attrs |> List.drop 1 |> List.head |> Maybe.withDefault ""
       in
-        Field { t = t, q = q , a = "" }
+        Field
+          { token = token
+          , question = question
+          , answer = value
+          , type_ = type_
+          , placeholder = placeholder
+          }
 
       ) (Re.find Re.All regex str)
   in
     ( str, fields )
-
-
-preview : Template -> List Field -> Html Msg
-preview template fields =
-  let
-    final = List.foldl (\(Field field) result ->
-        -- Use Regex.replace if String.split proves too unflexible; I may need
-        --   mode control over field.t in order to pull that of.
-        -- Re.replace (Re.AtMost 1) field.re (\_ -> field.a) result
-        String.split field.t result
-          |> String.join field.a
-      ) template fields
-  in
-    -- Switch to markdown rendering
-    Html.text final
 
 
 -- I'll need to construct a better regular expression, preferably one that's
@@ -144,4 +182,5 @@ preview template fields =
 -- https://developer.mozilla.org/en/docs/Web/JavaScript/Guide/Regular_Expressions
 regex : Re.Regex
 regex =
-  Re.regex "<=([\\w\\s]*)>"
+  Re.regex "\\[=(.+?)\\](?:\\((.+?)\\))?"
+  -- Re.regex "\\[=(.+?)\\](?:\\((.+?)\\))?"
